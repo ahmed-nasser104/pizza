@@ -1,7 +1,12 @@
 import Router from "express";
 import { validation } from "../../common/middleware/validation.js";
 import { signUpSchema } from "./auth.validation.js";
-import { login, signUp, verifyAccount } from "./auth.service.js";
+import {
+  login,
+  signInWithGoogle,
+  signUp,
+  verifyAccount,
+} from "./auth.service.js";
 import { successResponce } from "../../common/responce/SuccessResponce.js";
 const router = Router();
 router.post("/sign", validation(signUpSchema), async (req, res) => {
@@ -25,6 +30,17 @@ router.post("/verify", async (req, res) => {
 router.post("/login", async (req, res) => {
   const host = req.get("host");
   const user = await login(req.body, host);
+  successResponce({
+    res,
+    status: 200,
+    message: "login successfully",
+    data: user,
+  });
+});
+
+router.post("/login-with-google", async (req, res) => {
+  const host = req.get("host");
+  const user = await signInWithGoogle(req.body, host);
   successResponce({
     res,
     status: 200,

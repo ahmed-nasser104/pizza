@@ -8,15 +8,6 @@ export const createProductValidation = Joi.object({
   discount: Joi.number().min(0).max(100).default(0),
   Quantity: Joi.number().min(0).required(),
   isAvailable: Joi.boolean().default(true),
-  category: Joi.string()
-    .custom((value, helper) => {
-      if (!mongoose.Types.ObjectId.isValid(value)) {
-        return helper.message("Invalid category id");
-      }
-
-      return value;
-    })
-    .required(),
 });
 
 export const createCategoryValidation = Joi.object({

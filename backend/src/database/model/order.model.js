@@ -91,4 +91,4 @@ const orderSchema = new Schema(
   },
 );
 
-export const Order = model("Order", orderSchema);
+export const OrderModel = model("Order", orderSchema);

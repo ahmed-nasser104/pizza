@@ -55,6 +55,11 @@ const userSchema = new Schema(
       type: Boolean,
       default: false,
     },
+    provider: {
+      type: String,
+      enum: ["google", "system"],
+      default: "system",
+    },
   },
   {
     timestamps: true,

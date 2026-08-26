@@ -37,4 +37,4 @@ const cartSchema = new Schema(
   },
 );
 
-export const Cart = model("Cart", cartSchema);
+export const CartModel = model("Cart", cartSchema);

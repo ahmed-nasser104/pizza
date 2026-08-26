@@ -10,9 +10,10 @@ import {
 import { makeOtp } from "../../common/utils/service/generateOtp.js";
 import { sendMail } from "../../common/utils/service/sendEmail.js";
 import { generateToken } from "../../common/utils/token/token.js";
+import { env } from "../../config/env.service.js";
 import { UserModel } from "../../database/model/user.model.js";
 import { del, get, set } from "../../database/redis/redis.service.js";
-
+import { OAuth2Client } from "google-auth-library";
 export const signUp = async (userData) => {
   const { fullName, userName, email, password } = userData;
   const isUserExist = await UserModel.findOne({ email });
@@ -123,4 +124,51 @@ export const login = async (data, host) => {
   }
   const { AccessToken } = generateToken(isExist._id, host, isExist.role);
   return { isExist, AccessToken };
+};
+
+export const signInWithGoogle = async (data, host) => {
+  const { idToken } = data;
+
+  const client = new OAuth2Client({
+    clientId: env.client_id,
+  });
+
+  const ticket = await client.verifyIdToken({
+    idToken,
+    audience: env.client_id,
+  });
+
+  const payload = ticket.getPayload();
+
+  if (!payload) {
+    throw new Error("Invalid Google token");
+  }
+
+  const user = await UserModel.findOne({
+    email: payload.email,
+  });
+
+  if (user) {
+    const { AccessToken } = generateToken(user._id, host, user.role);
+
+    return AccessToken;
+  }
+
+  const newUser = await UserModel.create({
+    fullName: payload.name,
+    email: payload.email,
+    profilePic: payload.picture,
+    provider: "google",
+    isVerified: payload.email_verified,
+  });
+
+  if (!newUser) {
+    return badRequestError({
+      message: "can't add user",
+    });
+  }
+
+  const { AccessToken } = generateToken(newUser._id, host, newUser.role);
+
+  return AccessToken;
 };

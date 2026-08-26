@@ -15,7 +15,7 @@ export const generateToken = (userId, host, role) => {
   }
   const AccessToken = jwt.sign({ id: userId }, signature, {
     issuer: host,
-    expiresIn: "30m",
+    expiresIn: "7d",
     audience: [role],
   });
   return { AccessToken };
