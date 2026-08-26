@@ -12,6 +12,10 @@ import path from "path";
 import { globalRateLimit } from "./common/middleware/limiter.js";
 export const boostrap = async () => {
   const app = express();
+  // welcome to server
+  app.get("/", (req, res) => {
+    res.json("WELCOME TO SEEVER ");
+  });
 
   // 1. Database
   await databaseConnection();
