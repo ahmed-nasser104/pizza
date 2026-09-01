@@ -2,10 +2,27 @@ import { IoClose } from "react-icons/io5";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCartModalStore, useCartStore } from "../../store/store.js";
 import CartItem from "./CartItem.jsx";
+import { getCartApi } from "../../service/catApi.js";
+import { useEffect } from "react";
+import toastError from "../../utils/toast.error.js";
+import { Link } from "react-router-dom";
 
 export default function CartModal() {
   const { isOpen, closeCart } = useCartModalStore();
-  const { cart } = useCartStore();
+  const { cart, totalPrice, setCart } = useCartStore();
+  const value = totalPrice();
+  const getcart = async () => {
+    try {
+      const responce = await getCartApi();
+      setCart(responce.data.data.items || []);
+    } catch (error) {
+      toastError("Failed to fetch cart:", error);
+      setCart([]);
+    }
+  };
+  useEffect(() => {
+    getcart();
+  }, []);
   return (
     <AnimatePresence>
       {isOpen && (
@@ -27,7 +44,7 @@ export default function CartModal() {
             transition={{
               duration: 0.3,
             }}
-            className="fixed right-0 top-0 z-50 h-screen w-full max-w-md bg-base-100 shadow-2xl flex flex-col"
+            className="fixed right-0 top-0 z-50 h-screen w-full md:w-full max-w-md bg-base-100 shadow-2xl flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b p-5">
@@ -50,14 +67,19 @@ export default function CartModal() {
             </div>
 
             {/* Footer */}
-            <div className="border-t p-5 space-y-4">
+            <div className="border-t p-5 space-y-4 flex flex-col gap-1">
               <div className="flex justify-between text-lg font-bold">
                 <span>Total</span>
 
-                <span>$0.00</span>
+                <span>${value.toFixed(2)}</span>
               </div>
 
-              <button className="btn btn-primary w-full">Checkout</button>
+              <Link onClick={closeCart} to={"/check-out"}>
+                <button className="btn btn-primary w-full">Checkout</button>
+              </Link>
+              <button className="btn btn-error w-full" onClick={closeCart}>
+                Close
+              </button>
             </div>
           </motion.div>
         </>

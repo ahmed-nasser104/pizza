@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import AddCategoryModal from "../../components/admin/Category/AddCategoryModal";
 import { getCategories } from "../../service/categoryApi.js";
+import EditCategoryModal from "../../components/admin/Category/EditCategoryModal.jsx";
+import DeleteCategoryModal from "../../components/admin/Category/DeleteCategoryModal.jsx";
+import { Pencil, Trash2, PackageOpen } from "lucide-react";
 
 export default function Categories() {
   const [isOpen, setIsOpen] = useState(false);
   const [categories, setcategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   useEffect(() => {
     const allCategories = async () => {
       const responce = await getCategories();
       setcategories(responce.data.data);
-      console.log(responce);
     };
     allCategories();
   }, []);
@@ -30,42 +35,68 @@ export default function Categories() {
 
       {/* هنا بعدين هتحط جدول أو Cards */}
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {categories.length !== 0 ? (
           categories.map((cat) => (
             <div
               key={cat._id}
-              className="card bg-base-100 shadow-lg border border-base-300 hover:shadow-xl transition-all duration-300"
+              className="group card overflow-hidden rounded-2xl border border-base-300/60 bg-base-100 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
             >
-              <figure className="h-52 overflow-hidden">
+              {/* Image */}
+              <figure className="relative h-44 sm:h-52 overflow-hidden">
                 <img
                   src={cat.image}
                   alt={cat.name}
-                  className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
-              </figure>
 
-              <div className="card-body">
-                <div className="flex items-center justify-between">
-                  <h2 className="card-title">{cat.name}</h2>
+                {/* Gradient overlay for legibility */}
+                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/0 to-black/0" />
 
-                  <div
-                    className={`badge ${
-                      cat.isAvailable ? "badge-success" : "badge-error"
-                    }`}
-                  >
-                    {cat.isAvailable ? "Available" : "Unavailable"}
-                  </div>
+                {/* Floating status badge */}
+                <div
+                  className={`absolute top-3 right-3 rounded-full px-3 py-1 text-xs font-semibold backdrop-blur-md shadow-sm ${
+                    cat.isAvailable
+                      ? "bg-success/90 text-success-content"
+                      : "bg-error/90 text-error-content"
+                  }`}
+                >
+                  {cat.isAvailable ? "Available" : "Unavailable"}
                 </div>
 
-                <p className="line-clamp-2 text-sm text-gray-500">
+                {/* Title floating on image */}
+                <h2 className="absolute bottom-3 left-4 right-4 truncate text-lg font-bold text-white drop-shadow-sm">
+                  {cat.name}
+                </h2>
+              </figure>
+
+              {/* Body */}
+              <div className="card-body gap-3 p-4 sm:p-5">
+                <p className="line-clamp-2 min-h-10 text-sm text-gray-500">
                   {cat.description}
                 </p>
 
-                <div className="card-actions justify-end mt-4">
-                  <button className="btn btn-outline btn-sm">Edit</button>
+                <div className="divider my-0"></div>
 
-                  <button className="btn btn-error btn-sm text-white">
+                <div className="card-actions justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setEditOpen(true);
+                    }}
+                    className="btn btn-outline btn-sm flex-1 sm:flex-none rounded-xl gap-1.5"
+                  >
+                    <Pencil size={14} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      setDeleteOpen(true);
+                    }}
+                    className="btn btn-error btn-sm flex-1 sm:flex-none rounded-xl gap-1.5"
+                  >
+                    <Trash2 size={14} />
                     Delete
                   </button>
                 </div>
@@ -73,10 +104,14 @@ export default function Categories() {
             </div>
           ))
         ) : (
-          <div className="col-span-full rounded-xl border border-dashed border-base-300 p-12 text-center">
-            <h3 className="text-xl font-semibold">No Categories Yet</h3>
+          <div className="col-span-full flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-base-300 bg-base-100 px-4 py-14 sm:py-20 text-center">
+            <PackageOpen size={56} className="text-gray-400" />
 
-            <p className="mt-2 text-gray-500">
+            <h3 className="mt-4 text-lg sm:text-xl font-semibold">
+              No Categories Yet
+            </h3>
+
+            <p className="mt-2 max-w-sm text-sm sm:text-base text-gray-500">
               Create your first category to start organizing your menu.
             </p>
           </div>
@@ -84,6 +119,19 @@ export default function Categories() {
       </div>
 
       <AddCategoryModal isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <EditCategoryModal
+        isOpen={editOpen}
+        onClose={() => setEditOpen(false)}
+        category={selectedCategory}
+      />
+      <DeleteCategoryModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        category={selectedCategory}
+        onDelete={(id) => {
+          setcategories((prev) => prev.filter((cat) => cat._id !== id));
+        }}
+      />
     </>
   );
 }

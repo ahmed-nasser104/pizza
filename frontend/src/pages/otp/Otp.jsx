@@ -1,8 +1,8 @@
 import { useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { verifyAccount } from "./otp.service";
 import toastError from "../../utils/toast.error";
 import toast from "react-hot-toast";
+import { verifyAccount } from "../../service/verifyApi.js";
 export default function VerifyOtp() {
   const inputs = useRef([]);
 

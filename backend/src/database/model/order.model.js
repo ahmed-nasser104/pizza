@@ -56,7 +56,10 @@ const orderSchema = new Schema(
         type: String,
         required: true,
       },
-
+      postalCode: {
+        type: String,
+        required: true,
+      },
       building: {
         type: String,
         required: true,
@@ -84,6 +87,14 @@ const orderSchema = new Schema(
       type: String,
       enum: ["pending", "preparing", "on_the_way", "delivered", "cancelled"],
       default: "pending",
+    },
+    notes: {
+      type: String,
+    },
+    deliveryValue: {
+      type: Number,
+      default: 5,
+      min: 0,
     },
   },
   {

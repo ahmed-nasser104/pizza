@@ -1,15 +1,16 @@
-import { FcGoogle } from "react-icons/fc";
 import { FiMail } from "react-icons/fi";
 import { Link, useNavigate } from "react-router-dom";
 import { Formik, Form, Field, ErrorMessage } from "formik";
 import { validationSchema } from "./login.validation.js";
 import { initialValues } from "./login.initValues.js";
-import { loginApi } from "./login.service.js";
 import toastError from "../../utils/toast.error.js";
 import toast from "react-hot-toast";
 import { FaEyeSlash } from "react-icons/fa";
 import { FaEye } from "react-icons/fa";
 import { useState } from "react";
+import { loginApi, loginWithGoogle } from "../../service/loginApi.js";
+import { GoogleLogin } from "@react-oauth/google";
+import { jwtDecode } from "jwt-decode";
 export default function Login() {
   const navigate = useNavigate();
 
@@ -37,6 +38,22 @@ export default function Login() {
       }
     } catch (error) {
       toastError(error);
+    }
+  };
+  const handleSignWithGoogle = async (credentialResponse) => {
+    try {
+      const responce = await loginWithGoogle(credentialResponse.credential);
+      const token = responce.data.data;
+      const decodedToken = jwtDecode(token);
+      localStorage.setItem("token", token);
+      if (decodedToken.aud[0] === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/client");
+      }
+      console.log(responce);
+    } catch (error) {
+      console.log(error);
     }
   };
   const [eye, setEye] = useState(false);
@@ -138,11 +155,12 @@ export default function Login() {
 
           <div className="divider">OR</div>
 
-          <button className="btn btn-outline w-full gap-2">
-            <FcGoogle size={22} />
-            Continue with Google
-          </button>
-
+          <GoogleLogin
+            onSuccess={handleSignWithGoogle}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+          />
           <p className="text-center mt-5 text-sm">
             Don't have an account?{" "}
             <Link to="/" className="link link-primary font-semibold">

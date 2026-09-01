@@ -7,6 +7,7 @@ import { CategoryModel } from "../../database/model/category.model.js";
 import { ProductModel } from "../../database/model/product.model.js";
 import sharp from "sharp";
 import { UserModel } from "../../database/model/user.model.js";
+import { OrderModel } from "../../database/model/order.model.js";
 // categories
 
 export const getAllCategoties = async () => {
@@ -128,4 +129,41 @@ export const deleteUser = async (userId) => {
   }
   await UserModel.deleteOne({ _id: userId });
   return user;
+};
+
+//orders
+export const getAllOrders = async () => {
+  return await OrderModel.find()
+    .populate("user", "fullName email phone")
+    .sort({ createdAt: -1 });
+};
+
+export const updateOrderStatus = async (orderId, orderStatus) => {
+  const validStatuses = [
+    "pending",
+    "preparing",
+    "on_the_way",
+    "delivered",
+    "cancelled",
+  ];
+
+  if (!validStatuses.includes(orderStatus)) {
+    return badRequestError({
+      message: "Invalid order status",
+    });
+  }
+
+  const updatedOrder = await OrderModel.findByIdAndUpdate(
+    orderId,
+    { orderStatus },
+    { new: true },
+  ).populate("user", "fullName email phone");
+
+  if (!updatedOrder) {
+    return notFoundError({
+      message: "Order not found",
+    });
+  }
+
+  return updatedOrder;
 };

@@ -3,11 +3,15 @@ import { Formik, Form, Field, ErrorMessage } from "formik";
 import toast from "react-hot-toast";
 import { initialValues } from "./signup.initialValues.js";
 import { validationSchema } from "./signup.validation.js";
-import { signapi } from "./signup.service.js";
 import toastError from "../../utils/toast.error.js";
 import { useState } from "react";
 import { FaEyeSlash } from "react-icons/fa";
 import { FaEye } from "react-icons/fa";
+import { signapi } from "../../service/signApi.js";
+import { GoogleLogin } from "@react-oauth/google";
+import { loginWithGoogle } from "../../service/loginApi.js";
+import { jwtDecode } from "jwt-decode";
+
 export default function Sign() {
   const navigate = useNavigate();
 
@@ -21,6 +25,24 @@ export default function Sign() {
       }, 500);
     } catch (error) {
       toastError(error);
+    }
+  };
+  const handleSignWithGoogle = async (credentialResponse) => {
+    try {
+      const responce = await loginWithGoogle(credentialResponse.credential);
+      const token = responce.data.data;
+      const decodedToken = jwtDecode(token);
+      console.log(decodedToken);
+
+      localStorage.setItem("token", token);
+      if (decodedToken.aud[0] === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/client");
+      }
+      console.log(responce);
+    } catch (error) {
+      console.log(error);
     }
   };
   const [eye, setEye] = useState(false);
@@ -131,11 +153,14 @@ export default function Sign() {
           </Formik>
 
           <div className="divider">OR</div>
-
-          <button className="btn btn-outline w-full">
-            Continue with Google
-          </button>
-
+          <div className="w-full">
+            <GoogleLogin
+              onSuccess={handleSignWithGoogle}
+              onError={() => {
+                console.log("Login Failed");
+              }}
+            />
+          </div>
           <p className="text-center text-sm mt-4">
             Already have an account?{" "}
             <Link to="/login" className="link link-primary font-semibold">

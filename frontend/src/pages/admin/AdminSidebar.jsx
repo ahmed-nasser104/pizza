@@ -10,7 +10,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 
 export default function AdminSidebar({
   isOpen = false,
@@ -44,17 +44,17 @@ export default function AdminSidebar({
       path: "/admin/customers",
     },
     {
-      name: "Inventory",
-      icon: Boxes,
-      path: "/admin/inventory",
-    },
-    {
       name: "Settings",
       icon: Settings,
       path: "/admin/settings",
     },
   ];
-
+  const navigate = useNavigate();
+  const logOut = () => {
+    localStorage.removeItem("token");
+    sessionStorage.removeItem("token");
+    navigate("/login");
+  };
   return (
     <>
       {isOpen && (
@@ -65,7 +65,7 @@ export default function AdminSidebar({
       )}
 
       <aside
-        className={` fixed lg:static top-0 left-0 z-50 h-screen w-72 shrink-0 bg-slate-950 text-white border-r border-slate-800 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        className={` fixed lg:static top-0 left-0 z-50 h-full md:h-screen w-72 shrink-0 bg-slate-950 text-white border-r border-slate-800 transition-transform duration-300 ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
       >
         <div className="flex flex-col h-full p-5">
           {/* Logo */}
@@ -143,7 +143,10 @@ export default function AdminSidebar({
           {/* Logout */}
 
           <div className="border-t border-slate-800 pt-4">
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition">
+            <button
+              onClick={logOut}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition"
+            >
               <LogOut size={21} />
               <span>Logout</span>
             </button>

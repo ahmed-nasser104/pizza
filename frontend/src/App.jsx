@@ -15,13 +15,15 @@ import Categories from "./pages/admin/Categories";
 import CartModal from "./components/client/CartModal";
 import GuestRoute from "./routes/GuestRoute";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import ProductDetails from "./pages/client/ProductDetails";
+import NotFound from "./pages/NotFound";
+import CheckoutPage from "./pages/client/CheckoutPage";
 
 export default function App() {
   return (
     <>
-      <CartModal />
-
       <BrowserRouter>
+        <CartModal />
         <Routes>
           <Route
             path="/"
@@ -41,6 +43,11 @@ export default function App() {
           />
           <Route path="/verify-otp" element={<VerifyOtp />} />
           <Route path="/client" element={<ClientPage />} />
+          <Route path="/check-out" element={<CheckoutPage />} />
+          <Route
+            path="/product-details/:productId"
+            element={<ProductDetails />}
+          />
           <Route
             path="/admin"
             element={
@@ -57,6 +64,7 @@ export default function App() {
             <Route path="inventory" element={<InventoryPage />} />
             <Route path="settings" element={<SettingsPage />} />
           </Route>
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </>

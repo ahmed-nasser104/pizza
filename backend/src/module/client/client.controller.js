@@ -7,6 +7,7 @@ import {
   getProductById,
   getProducts,
   getUserProfile,
+  addOrder,
 } from "./client.service.js";
 import { successResponce } from "../../common/responce/SuccessResponce.js";
 const router = Router();
@@ -61,6 +62,16 @@ router.post("/product/:productId", auth, async (req, res) => {
   });
 });
 
+router.post("/order", auth, async (req, res) => {
+  const userId = req.user.id;
+  const order = await addOrder(req.body, userId);
+  successResponce({
+    res,
+    status: 201,
+    message: "order created",
+    data: order,
+  });
+});
 router.delete("/cart/:cartId", auth, async (req, res) => {
   const { cartId } = req.params;
   const deletedProduct = await deleteCartItem(req.user.id, cartId);

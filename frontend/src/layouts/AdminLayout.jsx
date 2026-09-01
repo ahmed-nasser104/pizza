@@ -7,9 +7,9 @@ export default function AdminLayout() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-base-200 flex">
+    <div className="h-screen bg-base-200 flex overflow-hidden">
+      {" "}
       <AdminSidebar isOpen={isOpen} closeSidebar={() => setIsOpen(false)} />
-
       <div className="flex-1 flex flex-col">
         <header className="lg:hidden bg-white p-4 shadow flex items-center">
           <button
@@ -20,7 +20,8 @@ export default function AdminLayout() {
           </button>
         </header>
 
-        <main className="flex-1 p-5 overflow-y-auto">
+        <main className="min-w-0 flex-1 overflow-y-auto p-5">
+          {" "}
           <Outlet />
         </main>
       </div>

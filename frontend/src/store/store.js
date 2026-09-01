@@ -7,63 +7,76 @@ export const useCartStore = create((set, get) => ({
   addToCart: (product) => {
     const cart = get().cart;
 
-    const exist = cart.find((item) => item.id === product.id);
+    const exist = cart.find((item) => item.product?._id === product._id);
 
     if (exist) {
       set({
         cart: cart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+          item.product?._id === product._id
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+              }
             : item,
         ),
       });
     } else {
       set({
-        cart: [...cart, { ...product, quantity: 1 }],
+        cart: [
+          ...cart,
+          {
+            product: product,
+            quantity: 1,
+          },
+        ],
       });
     }
   },
 
+  setCart: (newCart) => set({ cart: newCart ?? [] }),
   // Remove Product
-  removeFromCart: (id) => {
+  // Remove Product
+  removeFromCart: (productId) => {
     set({
-      cart: get().cart.filter((item) => item.id !== id),
+      cart: get().cart.filter((item) => item.product?._id !== productId),
     });
   },
 
   // Increase Quantity
-  increaseQuantity: (id) => {
+  increaseQuantity: (productId) => {
     set({
       cart: get().cart.map((item) =>
-        item.id === id ? { ...item, quantity: item.quantity + 1 } : item,
+        item.product?._id === productId
+          ? { ...item, quantity: item.quantity + 1 }
+          : item,
       ),
     });
   },
 
   // Decrease Quantity
-  decreaseQuantity: (id) => {
+  decreaseQuantity: (productId) => {
     set({
-      cart: get()
-        .cart.map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity - 1 } : item,
-        )
-        .filter((item) => item.quantity > 0),
+      cart: get().cart.map((item) =>
+        item.product?._id === productId && item.quantity > 1
+          ? { ...item, quantity: item.quantity - 1 }
+          : item,
+      ),
     });
   },
 
-  // Clear Cart
-  clearCart: () => set({ cart: [] }),
-
-  // Total Price
   totalPrice: () =>
-    get().cart.reduce((total, item) => total + item.price * item.quantity, 0),
+    (get().cart || [])
+      .filter((item) => item.product)
+      .reduce((total, item) => total + item.product.price * item.quantity, 0),
 
-  // Total Items
   totalQuantity: () =>
-    get().cart.reduce((total, item) => total + item.quantity, 0),
+    (get().cart || [])
+      .filter((item) => item.product)
+      .reduce((total, item) => total + item.quantity, 0),
 
   // Check Exists
-  isInCart: (id) => get().cart.some((item) => item.id === id),
+  isInCart: (productId) =>
+    get().cart.some((item) => item.product?._id === productId),
 }));
 
 export const useCartModalStore = create((set) => ({

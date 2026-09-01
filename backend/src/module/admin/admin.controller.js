@@ -16,6 +16,8 @@ import {
   editProducts,
   getAllProducts,
   getAllUsers,
+  getAllOrders,
+  updateOrderStatus,
 } from "./admin.service.js";
 import { isAdmin } from "../../common/middleware/isAdmin.js";
 import { successResponce } from "../../common/responce/SuccessResponce.js";
@@ -165,4 +167,30 @@ router.delete("/users/:userId", auth, isAdmin, async (req, res) => {
     data: deletedUser,
   });
 });
+
+//orders
+router.get("/orders", auth, isAdmin, async (req, res) => {
+  const orders = await getAllOrders();
+  successResponce({
+    res,
+    status: 200,
+    message: "Orders",
+    data: orders,
+  });
+});
+
+router.patch("/orders/:orderId/status", auth, isAdmin, async (req, res) => {
+  const { orderId } = req.params;
+  const { orderStatus } = req.body;
+
+  const order = await updateOrderStatus(orderId, orderStatus);
+
+  successResponce({
+    res,
+    status: 200,
+    message: "Order status updated successfully",
+    data: order,
+  });
+});
+
 export default router;

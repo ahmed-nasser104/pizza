@@ -1,5 +1,9 @@
-import { notFoundError } from "../../common/responce/error.responce.js";
+import {
+  badRequestError,
+  notFoundError,
+} from "../../common/responce/error.responce.js";
 import { CartModel } from "../../database/model/cart.model.js";
+import { OrderModel } from "../../database/model/order.model.js";
 import { ProductModel } from "../../database/model/product.model.js";
 import { UserModel } from "../../database/model/user.model.js";
 
@@ -33,23 +37,21 @@ export const getProductById = async (productId) => {
 };
 
 export const deleteCartItem = async (userId, productId) => {
-  const cart = await CartModel.findOneAndUpdate(
-    { user: userId },
-    {
-      $pull: {
-        items: {
-          product: productId,
-        },
-      },
-    },
-    { new: true },
-  );
-
+  const cart = await CartModel.findOne({ user: userId });
   if (!cart) {
     return notFoundError({
       message: "Cart not found",
     });
   }
+  cart.items = cart.items.filter(
+    (item) => item.product.toString() !== productId.toString(),
+  );
+  await cart.populate("items.product");
+  cart.totalPrice = cart.items.reduce((total, item) => {
+    return total + item.product.price * item.quantity;
+  }, 0);
+
+  await cart.save();
 
   return cart;
 };
@@ -92,4 +94,44 @@ export const addToCart = async (data, userId, productId) => {
   }
   await cart.save();
   return cart;
+};
+
+export const addOrder = async (data, userId) => {
+  const { city, street, phone, building, postalCode, notes } = data;
+  const cart = await CartModel.findOne({ user: userId }).populate(
+    "items.product",
+  );
+  if (!cart) {
+    return notFoundError({ message: "Cart not found" });
+  }
+  if (cart.items.length === 0) {
+    return badRequestError({ message: "Cart is empty" });
+  }
+  const items = cart.items.map((item) => ({
+    product: item.product._id,
+    title: item.product.ProductName,
+    image: item.product.image,
+    price: item.product.price,
+    quantity: item.quantity,
+  }));
+  const deliveryValue = 5;
+  const order = await OrderModel.create({
+    user: userId,
+    items,
+    totalPrice: cart.totalPrice + deliveryValue,
+    address: {
+      city,
+      street,
+      postalCode,
+      building,
+    },
+    phone,
+    notes,
+  });
+
+  if (!order) {
+    return badRequestError({ message: "Error happened" });
+  }
+  await CartModel.findOneAndDelete({ user: userId });
+  return order;
 };

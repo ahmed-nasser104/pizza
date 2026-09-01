@@ -15,3 +15,26 @@ export const getCategories = async () => {
     },
   });
 };
+
+export const editCategory = async (data, categoryId) => {
+  return await axios.patch(
+    `http://localhost:3000/admin/categories/${categoryId}`,
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+};
+
+export const deleteCategory = async (categoryId) => {
+  return await axios.delete(
+    `http://localhost:3000/admin/catrgory/${categoryId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+};
