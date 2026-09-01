@@ -6,6 +6,7 @@ import authRouter from "./module/auth/auth.controller.js";
 import adminRouter from "./module/admin/admin.controller.js";
 import userRouter from "./module/client/client.controller.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { redisConnection } from "./database/redis/redis.js";
 import { fileURLToPath } from "url";
 import path from "path";
@@ -22,7 +23,26 @@ export const boostrap = async () => {
   await redisConnection();
   // 2. Global middlewares
   app.use(express.json());
-  app.use(cors());
+  app.use(cookieParser());
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        const allowedOrigins = [
+          env.frontend_url,
+          "http://localhost:5173",
+          "http://127.0.0.1:5173",
+        ];
+
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+    }),
+  );
   // 3. Static files
   const __fileName = fileURLToPath(import.meta.url);
   const __direName = path.dirname(__fileName);

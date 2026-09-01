@@ -1,23 +1,64 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import toastError from "../../utils/toast.error";
 import toast from "react-hot-toast";
-import { verifyAccount } from "../../service/verifyApi.js";
+import { resendOtp, verifyAccount } from "../../service/verifyApi.js";
+
+const RESEND_COOLDOWN_SECONDS = 60;
+
 export default function VerifyOtp() {
   const inputs = useRef([]);
+  const navigate = useNavigate();
+  const email = localStorage.getItem("email");
+
+  const [countdown, setCountdown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+
+  useEffect(() => {
+    if (countdown <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handleChange = (e, index) => {
     if (e.target.value.length === 1 && index < 5) {
       inputs.current[index + 1].focus();
     }
   };
+
   const handleKeyDown = (e, index) => {
     if (e.key === "Backspace" && e.target.value === "" && index > 0) {
       inputs.current[index - 1].focus();
     }
   };
-  const navigate = useNavigate();
-  const email = localStorage.getItem("email");
+
+  const handleResendOtp = async () => {
+    if (!email || isResending || countdown > 0) return;
+
+    setIsResending(true);
+    try {
+      await resendOtp({ email });
+      setCountdown(RESEND_COOLDOWN_SECONDS);
+      toast.success("A new OTP has been sent successfully! ✨");
+    } catch (error) {
+      toastError(error);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const verifyHandler = async (e) => {
     try {
       e.preventDefault();
@@ -38,6 +79,7 @@ export default function VerifyOtp() {
       toastError(error);
     }
   };
+
   return (
     <div className="min-h-screen bg-base-200 flex items-center justify-center px-4">
       <div className="card w-full max-w-md bg-base-100 shadow-2xl">
@@ -77,7 +119,18 @@ export default function VerifyOtp() {
               Didn't receive the code?
             </p>
 
-            <button className="btn btn-link p-0">Resend OTP</button>
+            <button
+              type="button"
+              className="btn btn-link p-0"
+              onClick={handleResendOtp}
+              disabled={countdown > 0 || isResending}
+            >
+              {isResending
+                ? "Sending..."
+                : countdown > 0
+                  ? `Resend OTP in ${countdown}s`
+                  : "Resend OTP"}
+            </button>
 
             <div>
               <Link to="/login" className="link link-hover text-sm">

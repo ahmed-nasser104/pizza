@@ -39,3 +39,13 @@ export const signUpSchema = Joi.object({
       "string.pattern.base": "Invalid Egyptian phone number",
     }),
 });
+
+export const resendOtpSchema = Joi.object({
+  email: Joi.string().trim().email().optional(),
+  userName: Joi.string().trim().alphanum().min(3).max(20).optional(),
+})
+  .or("email", "userName")
+  .messages({
+    "object.missing": "Email or username is required",
+    "object.unknown": "Only email or username is allowed",
+  });

@@ -1,7 +1,9 @@
+import jwt from "jsonwebtoken";
 import {
   badRequestError,
   conflictError,
   notFoundError,
+  unauthorizedError,
 } from "../../common/responce/error.responce.js";
 import {
   compareHashingData,
@@ -9,33 +11,22 @@ import {
 } from "../../common/utils/security/hasing.js";
 import { makeOtp } from "../../common/utils/service/generateOtp.js";
 import { sendMail } from "../../common/utils/service/sendEmail.js";
-import { generateToken } from "../../common/utils/token/token.js";
+import {
+  generateAuthTokens,
+  generateToken,
+  verifyRefreshToken,
+} from "../../common/utils/token/token.js";
 import { env } from "../../config/env.service.js";
 import { UserModel } from "../../database/model/user.model.js";
 import { del, get, set } from "../../database/redis/redis.service.js";
 import { OAuth2Client } from "google-auth-library";
-export const signUp = async (userData) => {
-  const { fullName, userName, email, password } = userData;
-  const isUserExist = await UserModel.findOne({ email });
-  if (isUserExist) {
-    return conflictError({ message: "Email already exists" });
-  }
-  const isUserNameExist = await UserModel.findOne({ userName });
-  if (isUserNameExist) {
-    return conflictError({ message: "Username already exists" });
-  }
-  const hashedPassword = await hashingData(password);
-  const newUser = await UserModel.create({
-    fullName,
-    userName,
-    email,
-    password: hashedPassword,
-  });
-  const otp = makeOtp();
-  const hashedOtp = await hashingData(otp);
-  await set({ key: `otp:${newUser.email}`, value: hashedOtp, ttl: 60 * 5 });
+
+const OTP_TTL_SECONDS = 5 * 60;
+const RESEND_COOLDOWN_SECONDS = 60;
+
+const sendVerificationEmail = async (email, otp) => {
   await sendMail({
-    to: newUser.email,
+    to: email,
     subject: "Verify Your Email",
     html: `
     <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px;">
@@ -79,6 +70,36 @@ export const signUp = async (userData) => {
     </div>
   `,
   });
+};
+
+const storeOtpForEmail = async (email) => {
+  const otp = makeOtp();
+  const hashedOtp = await hashingData(otp);
+  await set({ key: `otp:${email}`, value: hashedOtp, ttl: OTP_TTL_SECONDS });
+  return otp;
+};
+
+export const signUp = async (userData) => {
+  const { fullName, userName, email, password } = userData;
+  const isUserExist = await UserModel.findOne({ email });
+  if (isUserExist) {
+    return conflictError({ message: "Email already exists" });
+  }
+  const isUserNameExist = await UserModel.findOne({ userName });
+  if (isUserNameExist) {
+    return conflictError({ message: "Username already exists" });
+  }
+  const hashedPassword = await hashingData(password);
+  const newUser = await UserModel.create({
+    fullName,
+    userName,
+    email,
+    password: hashedPassword,
+  });
+
+  const otp = await storeOtpForEmail(newUser.email);
+  await sendVerificationEmail(newUser.email, otp);
+
   return newUser;
 };
 
@@ -109,6 +130,54 @@ export const verifyAccount = async (data) => {
   return user;
 };
 
+export const resendOtp = async (data) => {
+  const identifier = data.email || data.userName;
+
+  if (!identifier) {
+    return badRequestError({
+      message: "Email or username is required",
+    });
+  }
+
+  const user = await UserModel.findOne({
+    $or: [{ email: identifier }, { userName: identifier }],
+  });
+
+  if (!user) {
+    return notFoundError({
+      message: "User not found",
+    });
+  }
+
+  if (user.isVerified) {
+    return badRequestError({
+      message: "User is already verified",
+    });
+  }
+
+  const cooldownKey = `otp:resend:${user.email}`;
+  const lastResendAt = Number(await get(cooldownKey));
+  const now = Date.now();
+
+  if (lastResendAt && lastResendAt > now) {
+    const remainingSeconds = Math.ceil((lastResendAt - now) / 1000);
+    return badRequestError({
+      message: `Please wait ${remainingSeconds} seconds before requesting a new OTP`,
+    });
+  }
+
+  const newOtp = await storeOtpForEmail(user.email);
+  await set({
+    key: cooldownKey,
+    value: String(now + RESEND_COOLDOWN_SECONDS * 1000),
+    ttl: RESEND_COOLDOWN_SECONDS,
+  });
+
+  await sendVerificationEmail(user.email, newOtp);
+
+  return { email: user.email };
+};
+
 export const login = async (data, host) => {
   const { email, password } = data;
   const isExist = await UserModel.findOne({ email });
@@ -122,8 +191,38 @@ export const login = async (data, host) => {
   if (!isExist.isVerified) {
     return badRequestError({ message: "account not verified" });
   }
-  const { AccessToken } = generateToken(isExist._id, host, isExist.role);
-  return { isExist, AccessToken };
+
+  const { AccessToken, refreshToken } = generateAuthTokens(
+    isExist._id,
+    host,
+    isExist.role,
+  );
+
+  return { isExist, AccessToken, refreshToken };
+};
+
+export const refreshAccessToken = async (refreshTokenValue, host) => {
+  if (!refreshTokenValue) {
+    return unauthorizedError({ message: "Refresh token is required" });
+  }
+
+  try {
+    const decoded = verifyRefreshToken(refreshTokenValue);
+
+    if (decoded.type !== "refresh") {
+      return unauthorizedError({ message: "Invalid refresh token" });
+    }
+
+    const user = await UserModel.findById(decoded.id);
+    if (!user || !user.isVerified) {
+      return unauthorizedError({ message: "User not found or inactive" });
+    }
+
+    const { AccessToken } = generateToken(user._id, host, user.role);
+    return { AccessToken };
+  } catch (error) {
+    return unauthorizedError({ message: "Invalid or expired refresh token" });
+  }
 };
 
 export const signInWithGoogle = async (data, host) => {
@@ -149,9 +248,13 @@ export const signInWithGoogle = async (data, host) => {
   });
 
   if (user) {
-    const { AccessToken } = generateToken(user._id, host, user.role);
+    const { AccessToken, refreshToken } = generateAuthTokens(
+      user._id,
+      host,
+      user.role,
+    );
 
-    return AccessToken;
+    return { AccessToken, refreshToken };
   }
 
   const newUser = await UserModel.create({
@@ -168,7 +271,11 @@ export const signInWithGoogle = async (data, host) => {
     });
   }
 
-  const { AccessToken } = generateToken(newUser._id, host, newUser.role);
+  const { AccessToken, refreshToken } = generateAuthTokens(
+    newUser._id,
+    host,
+    newUser.role,
+  );
 
-  return AccessToken;
+  return { AccessToken, refreshToken };
 };
