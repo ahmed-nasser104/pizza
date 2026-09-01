@@ -32,7 +32,6 @@ export default function Sign() {
       const responce = await loginWithGoogle(credentialResponse.credential);
       const token = responce.data.data;
       const decodedToken = jwtDecode(token);
-      console.log(decodedToken);
 
       localStorage.setItem("token", token);
       if (decodedToken.aud[0] === "admin") {
@@ -40,9 +39,8 @@ export default function Sign() {
       } else {
         navigate("/client");
       }
-      console.log(responce);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
   const [eye, setEye] = useState(false);
@@ -157,7 +155,7 @@ export default function Sign() {
             <GoogleLogin
               onSuccess={handleSignWithGoogle}
               onError={() => {
-                console.log("Login Failed");
+                toast.error("Google login failed");
               }}
             />
           </div>

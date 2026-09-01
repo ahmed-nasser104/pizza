@@ -16,7 +16,7 @@ export default function CartModal() {
       const responce = await getCartApi();
       setCart(responce.data.data.items || []);
     } catch (error) {
-      toastError("Failed to fetch cart:", error);
+      toastError(error);
       setCart([]);
     }
   };

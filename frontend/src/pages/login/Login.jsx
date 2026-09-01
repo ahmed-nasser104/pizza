@@ -17,7 +17,6 @@ export default function Login() {
   const handleSubmit = async (values) => {
     try {
       const resonce = await loginApi(values);
-      console.log(resonce);
 
       const token = resonce.data.data.AccessToken;
       const role = resonce.data.data.isExist.role;
@@ -51,9 +50,8 @@ export default function Login() {
       } else {
         navigate("/client");
       }
-      console.log(responce);
     } catch (error) {
-      console.log(error);
+      toastError(error);
     }
   };
   const [eye, setEye] = useState(false);
@@ -158,7 +156,7 @@ export default function Login() {
           <GoogleLogin
             onSuccess={handleSignWithGoogle}
             onError={() => {
-              console.log("Login Failed");
+              toast.error("Google login failed");
             }}
           />
           <p className="text-center mt-5 text-sm">

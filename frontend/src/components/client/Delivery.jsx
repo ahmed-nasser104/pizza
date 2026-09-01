@@ -4,14 +4,15 @@ import { initialData } from "../../pages/client/checkOut.initial.js";
 import { validationSchema } from "../../pages/client/validation.js";
 import { addOrder } from "../../service/orderApi.js";
 import toast from "react-hot-toast";
+import toastError from "../../utils/toast.error.js";
+
 export default function Delivery() {
   const SubmitHandler = async (values) => {
     try {
-      const response = await addOrder(values);
+      await addOrder(values);
       toast.success("Order placed successfully! 🎉");
     } catch (error) {
-      console.error(error);
-      toast.error(error?.response?.data?.message || "Something went wrong");
+      toastError(error);
     }
   };
 

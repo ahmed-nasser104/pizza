@@ -29,9 +29,10 @@ export const boostrap = async () => {
       origin: (origin, callback) => {
         const allowedOrigins = [
           env.frontend_url,
-          "http://localhost:5173",
-          "http://127.0.0.1:5173",
-        ];
+          ...(env.mood !== "production"
+            ? ["http://localhost:5173", "http://127.0.0.1:5173"]
+            : []),
+        ].filter(Boolean);
 
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
